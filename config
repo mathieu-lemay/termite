@@ -8,6 +8,7 @@
 #dynamic_title = true
 font = Monospace 9
 #fullscreen = true
+#maximized = false
 #icon_name = terminal
 #mouse_autohide = false
 #scroll_on_output = false
