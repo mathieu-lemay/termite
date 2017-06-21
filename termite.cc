@@ -123,7 +123,7 @@ struct config_info {
     char *browser;
     gboolean dynamic_title, urgent_on_bell, clickable_url, size_hints;
     gboolean filter_unmatched_urls, modify_other_keys;
-    gboolean fullscreen;
+    gboolean fullscreen, maximized;
     int tag;
     char *config_file;
     gdouble font_scale;
@@ -1401,6 +1401,7 @@ static void set_config(GtkWindow *window, VteTerminal *vte, config_info *info,
     info->filter_unmatched_urls = cfg_bool("filter_unmatched_urls", TRUE);
     info->modify_other_keys = cfg_bool("modify_other_keys", FALSE);
     info->fullscreen = cfg_bool("fullscreen", TRUE);
+    info->maximized = cfg_bool("maximized", FALSE);
     info->font_scale = vte_terminal_get_font_scale(vte);
 
     g_free(info->browser);
@@ -1509,7 +1510,7 @@ int main(int argc, char **argv) {
     GError *error = nullptr;
     const char *const term = "xterm-termite";
     char *directory = nullptr;
-    gboolean version = FALSE, hold = FALSE;
+    gboolean version = FALSE, hold = FALSE, maximized = FALSE;
 
     GOptionContext *context = g_option_context_new(nullptr);
     char *role = nullptr, *geometry = nullptr, *execute = nullptr, *config_file = nullptr;
@@ -1521,6 +1522,7 @@ int main(int argc, char **argv) {
         {"title", 't', 0, G_OPTION_ARG_STRING, &title, "Window title", "TITLE"},
         {"directory", 'd', 0, G_OPTION_ARG_STRING, &directory, "Change to directory", "DIRECTORY"},
         {"geometry", 0, 0, G_OPTION_ARG_STRING, &geometry, "Window geometry", "GEOMETRY"},
+        {"maximized", 0, 0, G_OPTION_ARG_NONE, &maximized, "Start Maximized", nullptr},
         {"hold", 0, 0, G_OPTION_ARG_NONE, &hold, "Remain open after child process exits", nullptr},
         {"config", 'c', 0, G_OPTION_ARG_STRING, &config_file, "Path of config file", "CONFIG"},
         {"icon", 'i', 0, G_OPTION_ARG_STRING, &icon, "Icon", "ICON"},
@@ -1589,7 +1591,7 @@ int main(int argc, char **argv) {
          nullptr},
         {vi_mode::insert, 0, 0, 0, 0},
         {{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, 0},
-         nullptr, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, -1, config_file, 0},
+         nullptr, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, -1, config_file, 0},
         gtk_window_fullscreen
     };
 
@@ -1662,6 +1664,10 @@ int main(int argc, char **argv) {
             g_printerr("invalid geometry string: %s\n", geometry);
         }
         g_free(geometry);
+    }
+
+    if (maximized || info.config.maximized) {
+        gtk_window_maximize(GTK_WINDOW(window));
     }
 
     if (icon) {
