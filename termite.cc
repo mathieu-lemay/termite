@@ -564,6 +564,11 @@ static void move_to_row_start(VteTerminal *vte, select_info *select, long row) {
 }
 
 static void open_selection(char *browser, VteTerminal *vte) {
+    if (!vte_terminal_get_has_selection(vte)) {
+        g_printerr("no selection to open\n");
+        return;
+    }
+
     if (browser) {
         auto selection = make_unique(vte_terminal_get_selection(vte), g_free);
         if (selection && *selection) {
@@ -1169,7 +1174,14 @@ gboolean position_overlay_cb(GtkBin *overlay, GtkWidget *widget, GdkRectangle *a
 
 gboolean button_press_cb(VteTerminal *vte, GdkEventButton *event, const config_info *info) {
     if (info->clickable_url && event->type == GDK_BUTTON_PRESS) {
+#if VTE_CHECK_VERSION (0, 49, 1)
+        auto match = make_unique(vte_terminal_hyperlink_check_event(vte, (GdkEvent*)event), g_free);
+        if (!match) {
+            match = make_unique(check_match(vte, event), g_free);
+        }
+#else
         auto match = make_unique(check_match(vte, event), g_free);
+#endif
         if (!match)
             return FALSE;
 
@@ -1459,6 +1471,9 @@ static void set_config(GtkWindow *window, VteTerminal *vte, GtkWidget *scrollbar
     vte_terminal_set_mouse_autohide(vte, cfg_bool("mouse_autohide", FALSE));
     vte_terminal_set_allow_bold(vte, cfg_bool("allow_bold", TRUE));
     vte_terminal_search_set_wrap_around(vte, cfg_bool("search_wrap", TRUE));
+#if VTE_CHECK_VERSION (0, 49, 1)
+    vte_terminal_set_allow_hyperlink(vte, cfg_bool("hyperlinks", FALSE));
+#endif
     info->dynamic_title = cfg_bool("dynamic_title", TRUE);
     info->urgent_on_bell = cfg_bool("urgent_on_bell", TRUE);
     info->clickable_url = cfg_bool("clickable_url", TRUE);
@@ -1752,7 +1767,11 @@ int main(int argc, char **argv) {
     } else {
         g_signal_connect(vte, "window-title-changed", G_CALLBACK(window_title_cb),
                          &info.config.dynamic_title);
-        window_title_cb(vte, &info.config.dynamic_title);
+        if (execute) {
+            gtk_window_set_title(GTK_WINDOW(window), execute);
+        } else {
+            window_title_cb(vte, &info.config.dynamic_title);
+        }
     }
 
     if (geometry) {
