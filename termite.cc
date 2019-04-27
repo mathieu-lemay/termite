@@ -809,7 +809,7 @@ gboolean window_state_cb(GtkWindow *, GdkEventWindowState *event, keybind_info *
 gboolean key_press_cb(VteTerminal *vte, GdkEventKey *event, keybind_info *info) {
     const guint modifiers = event->state & gtk_accelerator_get_default_mod_mask();
 
-    if (info->config.fullscreen && event->keyval == GDK_KEY_F11) {
+    if (info->config.fullscreen && event->keyval == GDK_KEY_F11 && !modifiers) {
         info->fullscreen_toggle(info->window);
         return TRUE;
     }
@@ -1028,9 +1028,11 @@ gboolean key_press_cb(VteTerminal *vte, GdkEventKey *event, keybind_info *info) 
                 overlay_show(&info->panel, overlay_mode::completion, vte);
                 return TRUE;
             case GDK_KEY_plus:
+            case GDK_KEY_KP_Add:
                 increase_font_scale(vte);
                 return TRUE;
             case GDK_KEY_minus:
+            case GDK_KEY_KP_Subtract:
                 decrease_font_scale(vte);
                 return TRUE;
             case GDK_KEY_equal:
@@ -1479,6 +1481,8 @@ static void set_config(GtkWindow *window, VteTerminal *vte, GtkWidget *scrollbar
 #endif
 #if VTE_CHECK_VERSION (0, 51, 2)
     vte_terminal_set_bold_is_bright(vte, cfg_bool("bold_is_bright", TRUE));
+    vte_terminal_set_cell_height_scale(vte, get_config_double(config, "options", "cell_height_scale").get_value_or(1.0));
+    vte_terminal_set_cell_width_scale(vte, get_config_double(config, "options", "cell_width_scale").get_value_or(1.0));
 #endif
     info->dynamic_title = cfg_bool("dynamic_title", TRUE);
     info->urgent_on_bell = cfg_bool("urgent_on_bell", TRUE);
